@@ -1,0 +1,247 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  image         String?
+  role          String    @default("user")
+  bio           String?
+  location      String?
+  skills        Json?
+  socialLinks   Json?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  posts         Post[]
+  media         Media[]
+  followers     Follow[]    @relation("Following")
+  following     Follow[]    @relation("Followers")
+  comments      Comment[]
+  notifications Notification[]
+  organizedEvents Event[]   @relation("OrganizedEvents")
+  eventAttendance EventAttendee[]
+  files         File[]
+  fileShares    FileShare[]
+  talentProfile TalentProfile?
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String?
+  content     String    @db.Text
+  published   Boolean   @default(false)
+  authorId    String
+  categoryId  String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category    Category  @relation(fields: [categoryId], references: [id])
+  comments    Comment[]
+  media       Media[]
+  tags        String[]
+  likes       Int       @default(0)
+  views       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Media {
+  id          String    @id @default(cuid())
+  url         String
+  type        String    // image, video, document
+  title       String?
+  description String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId      String?
+  post        Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+}
+
+model Follow {
+  id          String    @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime  @default(now())
+  follower    User      @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User      @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?   @db.Text
+  slug        String    @unique
+  image       String?
+  posts       Post[]
+  events      Event[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String    @db.Text
+  location    String
+  startDate   DateTime
+  endDate     DateTime
+  image       String?
+  capacity    Int?
+  price       Float?
+  status      String    @default("upcoming") // upcoming, ongoing, completed, cancelled
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  organizerId String
+  organizer   User      @relation("OrganizedEvents", fields: [organizerId], references: [id])
+  attendees   EventAttendee[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model EventAttendee {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  status    String   @default("registered") // registered, attended, cancelled
+  event     Event    @relation(fields: [eventId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  postId    String
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // follow, comment, like, event
+  title     String
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  link      String?  // URL to the related content
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model File {
+  id           String      @id @default(cuid())
+  name         String
+  size         Int
+  contentType  String
+  storagePath  String
+  userId       String      @map("user_id")
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  shares       FileShare[] @relation("FileShares")
+
+  @@map("files")
+}
+
+model FileShare {
+  id           String    @id
+  fileId       String    @map("file_id")
+  userId       String    @map("user_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  expiresAt    DateTime? @map("expires_at")
+  accessCode   String?   @map("access_code")
+  maxDownloads Int?      @map("max_downloads")
+  downloads    Int       @default(0)
+  url          String
+  file         File      @relation("FileShares", fields: [fileId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("file_shares")
+}
+
+model Feature {
+  id          String    @id @default(cuid())
+  title       String
+  description String    @db.Text
+  icon        String    // Store the icon name (e.g., "BiCalendarEvent")
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  link        String?   // Optional link to feature page
+  stats       Json?     // Store dynamic stats (e.g., number of events, users)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model TalentProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String
+  skills      Json
+  availability String?
+  portfolio   Json?
+  categories  Category[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

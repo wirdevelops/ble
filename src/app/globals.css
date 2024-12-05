@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 212 175 55;      /* #D4AF37 */
+    --color-secondary: 88 86 214;     /* #5856D6 */
+    --color-background: 255 255 255;  /* #FFFFFF */
+    --color-text: 0 0 0;             /* #000000 */
+    --color-accent: 255 215 0;       /* #FFD700 */
+    --color-surface: 242 242 247;    /* #F2F2F7 */
+    --color-border: 199 199 204;     /* #C7C7CC */
+  }
+
+  .dark {
+    --color-primary: 212 175 55;      /* #D4AF37 */
+    --color-secondary: 94 92 230;     /* #5E5CE6 */
+    --color-background: 0 0 0;        /* #000000 */
+    --color-text: 255 255 255;        /* #FFFFFF */
+    --color-accent: 255 215 0;        /* #FFD700 */
+    --color-surface: 28 28 30;        /* #1C1C1E */
+    --color-border: 56 56 58;         /* #38383A */
+  }
+
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-text;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-background px-4 py-2 rounded-md hover:opacity-90 transition-opacity;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-background px-4 py-2 rounded-md hover:opacity-90 transition-opacity;
+  }
+
+  .card {
+    @apply bg-surface border border-border rounded-lg p-4 shadow-lg;
+  }
+
+  .nav-link {
+    @apply text-text hover:text-primary transition-colors;
+  }
+}
+
+.marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.marker.event {
+  @apply bg-primary;
+}
+
+.marker.talent {
+  @apply bg-secondary;
+}
+
+.marker.venue {
+  @apply bg-blue-500;
+}
+
+.marker:hover {
+  transform: scale(1.2);
+}
+
+.mapboxgl-popup {
+  max-width: 200px;
+}
+
+.mapboxgl-popup-content {
+  padding: 12px;
+  border-radius: 8px;
+  @apply bg-background text-text border border-border;
+}
